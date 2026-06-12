@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and secrets
+.env
+.streamlit/secrets.toml
+
+# Streamlit and local outputs
+outputs/
+tmp/
+*.zip
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
