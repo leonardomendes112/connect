@@ -32,6 +32,12 @@ from .utils import (
 )
 
 
+def maybe_numeric(series: pd.Series) -> pd.Series:
+    """Convert fully numeric-looking values while preserving mixed ID columns as text."""
+    converted = pd.to_numeric(series, errors="coerce")
+    return converted.where(converted.notna(), series)
+
+
 def format_amount_and_unit(value: Any, unit: str) -> tuple[str, str]:
     """Format Optibus result values into the CSV shape expected by downstream users."""
     normalized_unit = (unit or "").strip()
@@ -95,7 +101,7 @@ def save_payroll_csv(rows: list[dict], out_path: Path) -> int:
     """Save payroll rows and return the number of records written."""
     dataframe = pd.DataFrame(rows, columns=[COL_DRIVER, COL_DATE, COL_CODE, COL_AMOUNT, COL_UNIT])
     dataframe[COL_AMOUNT] = dataframe[COL_AMOUNT].apply(excel_sanitize_cell)
-    dataframe[COL_DRIVER] = pd.to_numeric(dataframe[COL_DRIVER], errors="ignore")
+    dataframe[COL_DRIVER] = maybe_numeric(dataframe[COL_DRIVER])
     dataframe = dataframe.sort_values([COL_DRIVER, COL_DATE, COL_CODE, COL_UNIT], kind="stable")
     dataframe.to_csv(out_path, index=False, encoding="utf-8-sig")
     return len(dataframe)
@@ -148,7 +154,7 @@ def save_absences_csv(absences: list[dict], by_external_id: dict[str, DriverInfo
             "Note",
         ],
     )
-    dataframe["Driver Id"] = pd.to_numeric(dataframe["Driver Id"], errors="ignore")
+    dataframe["Driver Id"] = maybe_numeric(dataframe["Driver Id"])
     dataframe = dataframe.sort_values(["Driver Id", "Start date", "Absence code"], kind="stable")
     dataframe.to_csv(out_path, index=False, encoding="utf-8-sig")
     return len(dataframe)
@@ -203,7 +209,7 @@ def save_driver_day_labels_csv(labels: list[dict], by_uuid: dict[str, DriverInfo
 
     dataframe = pd.DataFrame(rows, columns=["Driver ID", "Date", "Driver Day Label"])
     if not dataframe.empty:
-        dataframe["Driver ID"] = pd.to_numeric(dataframe["Driver ID"], errors="ignore")
+        dataframe["Driver ID"] = maybe_numeric(dataframe["Driver ID"])
         dataframe = dataframe.sort_values(["Driver ID", "Date", "Driver Day Label"], kind="stable")
     dataframe.to_csv(out_path, index=False, encoding="utf-8-sig")
     return len(dataframe)
@@ -287,7 +293,7 @@ def _save_allocation_matrix(
         rows_out.append(row)
 
     dataframe = pd.DataFrame(rows_out, columns=columns)
-    dataframe["Driver ID"] = pd.to_numeric(dataframe["Driver ID"], errors="ignore")
+    dataframe["Driver ID"] = maybe_numeric(dataframe["Driver ID"])
     dataframe.to_csv(out_path, index=False, encoding="utf-8-sig")
     return len(dataframe)
 
@@ -476,7 +482,7 @@ def compute_diffs(
                 )
 
     dataframe = pd.DataFrame(differences, columns=DIFF_COLS)
-    dataframe[COL_DRIVER] = pd.to_numeric(dataframe[COL_DRIVER], errors="ignore")
+    dataframe[COL_DRIVER] = maybe_numeric(dataframe[COL_DRIVER])
     dataframe = dataframe.sort_values([COL_DRIVER, COL_DATE, COL_CODE, COL_UNIT, "Change"], kind="stable")
     if "Pre-changes" in dataframe.columns:
         dataframe["Pre-changes"] = dataframe["Pre-changes"].apply(
